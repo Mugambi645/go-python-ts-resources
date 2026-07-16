@@ -1,5 +1,5 @@
 import unittest
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -63,6 +63,64 @@ class TestLeafNode(unittest.TestCase):
         node = LeafNode("p", None)  # type: ignore
         with self.assertRaises(ValueError):
             node.to_html()
+
+
+
+
+class TestParentNode(unittest.TestCase):
+    def test_to_html_with_children(self):
+        """Standard parent node containing simple leaf children renders correctly."""
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
+
+    def test_to_html_with_grandchildren(self):
+        """Deeply nested parent nodes compute HTML recursively."""
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span><b>grandchild</b></span></div>",
+        )
+
+    def test_to_html_with_many_children(self):
+        """Checks parent node rendering sequence with multiple types of child leaf nodes."""
+        node = ParentNode(
+            "p",
+            [
+                LeafNode("b", "Bold text"),
+                LeafNode(None, "Normal text"),
+                LeafNode("i", "italic text"),
+                LeafNode(None, "Normal text"),
+            ],
+        )
+        self.assertEqual(
+            node.to_html(),
+            "<p><b>Bold text</b>Normal text<i>italic text</i>Normal text</p>",
+        )
+
+    def test_to_html_with_props(self):
+        """Checks properties rendering on parent node level."""
+        child = LeafNode("span", "text")
+        parent = ParentNode("div", [child], {"class": "container", "id": "main"})
+        self.assertEqual(
+            parent.to_html(),
+            '<div class="container" id="main"><span>text</span></div>'
+        )
+
+    def test_to_html_missing_tag_raises_value_error(self):
+        """Parent node initialized without a tag raises ValueError on conversion."""
+        node = ParentNode(None, [LeafNode("span", "text")])  # type: ignore
+        with self.assertRaises(ValueError):
+            node.to_html()
+
+    def test_to_html_missing_children_raises_value_error(self):
+        """Parent node initialized without child elements raises ValueError on conversion."""
+        node = ParentNode("div", None)  # type: ignore
+        with self.assertRaises(ValueError):
+            node.to_html()
+
 
 if __name__ == "__main__":
     unittest.main()
